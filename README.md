@@ -1,2 +1,2 @@
 # EasyString
-An .h that implements a Object-Like String programming
+An .h that implements a Object-Like String programming in C
