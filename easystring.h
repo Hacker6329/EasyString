@@ -60,8 +60,11 @@ EasyString* string_clone(const EasyString* string);
 EasyString* string_clone_c_str(const char* string);
 EasyString* string_replace_occurrence(const EasyString* string, const EasyString* oldSequence, const EasyString* newSequence, int occurrenceNumber);
 EasyString* string_replace_occurrence_c_str(const char* string, const char* oldSequence, const char* newSequence, int occurrenceNumber);
+char* _string_strsep_(char **stringPtr, const char *substring);
 EasyStringArray* string_split(const EasyString* string, const EasyString* substring);
 EasyStringArray* string_split_c_str(const char* string, const char* substring);
+EasyStringArray* string_array_delete_consecutive_double_occurrences(const EasyStringArray* stringArray, const EasyString* sequence);
+EasyStringArray* string_array_delete_consecutive_double_occurrences_c_str(const EasyStringArray* stringArray, const char* sequence);
 void string_delete(EasyString** string);
 void string_array_delete(EasyStringArray** stringArr);
 
@@ -289,6 +292,21 @@ EasyString* string_replace_occurrence_c_str(const char* string, const char* oldS
 
     return newString;
 }
+char* _string_strsep_(char **stringPtr, const char *substring) {
+    char *begin, *end;
+    begin = *stringPtr;
+    if (begin == NULL) return NULL;
+    /* Find the end of the token.  */
+    end = begin + strcspn (begin, substring);
+    if (*end) { // Terminate the token and set *STRINGP past NUL character.
+        *end++ = '\0';
+        *stringPtr = end;
+    }
+    else
+    /* No more delimiters; this is the last token.  */
+    *stringPtr = NULL;
+    return begin;
+}
 EasyStringArray* string_split(const EasyString* string, const EasyString* substring) {
     if(string == NULL || substring == NULL) return NULL;
     return string_split_c_str(string->string, substring->string);
@@ -296,25 +314,76 @@ EasyStringArray* string_split(const EasyString* string, const EasyString* substr
 EasyStringArray* string_split_c_str(const char* string, const char* substring) {
     if(string == NULL || substring == NULL || !strlen(string) || !strlen(substring) || (strlen(substring) > strlen(string))) return NULL;
 
-    int arrayLength = string_occurrences_c_str(string, substring);
-    int i, oldStringIndex = 0, occ;
+    int arrayLength = 0, i;
 
-    if(arrayLength == 0) return NULL;
+    EasyString** arr = (EasyString**) malloc(sizeof(EasyString*)*strlen(string));
+    char *token, *stringPtr;
 
-    arrayLength++;
-
-    EasyStringArray* stringArray = string_array_init(arrayLength);
-    EasyString* buffer = NULL;
-
-    for(i=0;i<string_array_length(stringArray);i++) {
-        occ = string_first_occurrence_index_from_index_c_str(string, substring, oldStringIndex);
-        buffer = string_substring_c_str(string, oldStringIndex, occ);
-        oldStringIndex+=strlen(substring)+buffer->length;
-        stringArray->stringArray[i] = string_init_with_string(buffer->string);
-        string_delete(&buffer);
+    stringPtr = strdup(string);
+    while ((token = _string_strsep_(&stringPtr, substring)) != NULL){
+        arr[arrayLength] = string_init_with_string(token);
+        arrayLength++;
     }
 
-    return stringArray;
+    free(stringPtr);
+
+    EasyStringArray* stringArray = string_array_init(arrayLength);
+
+    for(i=0;i<arrayLength;i++) {
+        stringArray->stringArray[i] = arr[i];
+    }
+
+    free(arr);
+
+    EasyStringArray* finalStringArray = string_array_delete_consecutive_double_occurrences_c_str(stringArray, "");
+
+    string_array_delete(&stringArray);
+    
+    return finalStringArray;
+}
+EasyStringArray* string_array_delete_consecutive_double_occurrences(const EasyStringArray* stringArray, const EasyString* sequence) {
+    if(sequence == NULL) return NULL;
+    return string_array_delete_consecutive_double_occurrences_c_str(stringArray, sequence->string);
+}
+EasyStringArray* string_array_delete_consecutive_double_occurrences_c_str(const EasyStringArray* stringArray, const char* sequence) {
+    if(stringArray == NULL || sequence == NULL) return NULL;
+    
+    int prevIsEmpty, i;
+    int newFinalLength = 0, arrIndex;
+    
+    for(i=0, prevIsEmpty = 0; i<stringArray->length;i++) {
+        if(!strcmp(stringArray->stringArray[i]->string, sequence)) {
+            if(prevIsEmpty) {
+                prevIsEmpty = 0;
+                newFinalLength++;
+            }else {
+                prevIsEmpty = 1;
+            }
+        } else {
+            prevIsEmpty = 0;
+            newFinalLength++;
+        }
+    }
+
+    EasyStringArray* newStringArray = string_array_init(newFinalLength);
+
+    for(i=0, arrIndex=0, prevIsEmpty = 0; i<stringArray->length;i++) {
+        if(!strcmp(stringArray->stringArray[i]->string, sequence)) {
+            if(prevIsEmpty) {
+                prevIsEmpty = 0;
+                newStringArray->stringArray[arrIndex] = string_init_with_string(stringArray->stringArray[i]->string);
+                arrIndex++;
+            }else {
+                prevIsEmpty = 1;
+            }
+        } else {
+            prevIsEmpty = 0;
+            newStringArray->stringArray[arrIndex] = string_init_with_string(stringArray->stringArray[i]->string);
+            arrIndex++;
+        }
+    }
+
+    return newStringArray;
 }
 EasyString* string_replace_first(const EasyString* string, const EasyString* oldSequence, const EasyString* newSequence) {
     if(string == NULL || oldSequence == NULL || newSequence == NULL) return NULL;
