@@ -8,6 +8,7 @@
 
 //Defs
 #define DEFAULT_STRING_SIZE 100
+#define DEFAUT_STRING_LIST_SIZE 10
 
 //EasyString Structure
 typedef struct {
@@ -22,15 +23,19 @@ typedef struct {
     int length;
 }EasyStringArray;
 
-//Functions Pre-Declaration
+//StringList Structure
+typedef struct {
+    EasyStringArray* strings;
+    int size;
+    int _impl_size;
+}EasyStringList;
+
+//Functions Pre-Declaration: EasyString
 EasyString* string_init_with_size(int size);
 EasyString* string_init();
 EasyString* string_init_with_string(const char* startStr);
 void string_reinit(EasyString* src, const EasyString* newStr);
 void string_reinit_c_str(EasyString* src, const char* newStr);
-EasyStringArray* string_array_init(int arrayLength);
-EasyString* string_array_get(EasyStringArray* stringArray, int index);
-int string_array_length(EasyStringArray* stringArray);
 void string_append(EasyString* dest, const EasyString* src);
 void string_append_c_str(EasyString* dest, const char* src);
 void string_append_at_begin(EasyString* dest, const EasyString* src);
@@ -40,6 +45,8 @@ void string_append_at_index_c_str(EasyString* dest, const char* src, int index);
 const char* string_c_str(const EasyString* string);
 int string_equals(const EasyString* str1, const EasyString* str2);
 int string_equals_c_str(const char* str1, const char* str2);
+EasyStringArray* string_split(const EasyString* string, const EasyString* substring);
+EasyStringArray* string_split_c_str(const char* string, const char* substring);
 int string_contains(const EasyString* string, const EasyString* substring);
 int string_contains_c_str(const char* string, const char* substring);
 int string_first_occurrence_index(const EasyString* string, const EasyString* substring);
@@ -60,15 +67,42 @@ EasyString* string_clone(const EasyString* string);
 EasyString* string_clone_c_str(const char* string);
 EasyString* string_replace_occurrence(const EasyString* string, const EasyString* oldSequence, const EasyString* newSequence, int occurrenceNumber);
 EasyString* string_replace_occurrence_c_str(const char* string, const char* oldSequence, const char* newSequence, int occurrenceNumber);
-char* _string_strsep_(char **stringPtr, const char *substring);
-EasyStringArray* string_split(const EasyString* string, const EasyString* substring);
-EasyStringArray* string_split_c_str(const char* string, const char* substring);
+void string_delete(EasyString** string);
+
+//Functions Pre-Declaration: EasyStringArray
+EasyStringArray* string_array_init(int arrayLength);
+int string_array_realloc(EasyStringArray* oldArray, int newSize);
+int string_array_length(const EasyStringArray* stringArray);
+EasyString* string_array_get(const EasyStringArray* stringArray, int index);
+EasyStringArray* string_array_char_by_char(const EasyString* string);
+EasyStringArray* string_array_char_by_char_c_str(const char* string);
 EasyStringArray* string_array_delete_consecutive_double_occurrences(const EasyStringArray* stringArray, const EasyString* sequence);
 EasyStringArray* string_array_delete_consecutive_double_occurrences_c_str(const EasyStringArray* stringArray, const char* sequence);
-void string_delete(EasyString** string);
+EasyStringList* string_array_to_string_list(const EasyStringArray* stringArray);
 void string_array_delete(EasyStringArray** stringArr);
 
-//Functions Declaration
+//Functions Pre-Declaration: EasyStringList
+EasyStringList* string_list_init();
+EasyStringList* string_list_init_with_size(int listStartingSize);
+int string_list_defrag(EasyStringList* stringList);
+int string_list_defrag_index(EasyStringList* stringList, int index);
+EasyString* string_list_get(const EasyStringList* stringList, int index);
+int string_list_add(EasyStringList* stringList, const EasyString* string);
+int string_list_add_c_str(EasyStringList* stringList, const char* string);
+int string_list_add_string_array(EasyStringList* stringList, const EasyStringArray* stringArray);
+EasyStringArray* string_list_to_string_array(const EasyStringList* stringList);
+int string_list_get_occ(const EasyStringList* stringList, const EasyString* string);
+int string_list_get_occ_c_str(const EasyStringList* stringList, const char* string);
+int string_list_find(const EasyStringList* stringList, const EasyString* string);
+int string_list_find_c_str(const EasyStringList* stringList, const char* string);
+int string_list_remove(EasyStringList* stringList, const EasyString* string);
+int string_list_remove_c_str(EasyStringList* stringList, const char* string);
+int string_list_remove_by_index(EasyStringList* stringList, int index);
+int string_list_remove_all(EasyStringList* stringList, const EasyString* string);
+int string_list_remove_all_c_str(EasyStringList* stringList, const char* string);
+void string_list_delete(EasyStringList** stringList);
+
+//Functions Declaration: EasyString
 EasyString* string_init_with_size(int size) {
     if(size<0) return NULL;
     if(size == 0) {
@@ -102,17 +136,6 @@ void string_reinit_c_str(EasyString* src, const char* newStr) {
     src->string = (char*) malloc(sizeof(char)*src->size);
     src->string[0] = 0;
     string_append_c_str(src, newStr);
-}
-EasyStringArray* string_array_init(int arrayLength) {
-    if(arrayLength<=0) return NULL;
-    EasyStringArray* stringArray = (EasyStringArray*) malloc(sizeof(EasyStringArray));
-    stringArray->length = arrayLength;
-    stringArray->stringArray = (EasyString**) malloc(sizeof(EasyString**)*arrayLength);
-    return stringArray;
-}
-int string_array_length(EasyStringArray* stringArray) {
-    if(stringArray == NULL) return -1;
-    return stringArray->length;
 }
 void string_append(EasyString* dest, const EasyString* src) {
     if(dest == NULL || src == NULL) return;
@@ -174,6 +197,64 @@ int string_equals(const EasyString* str1, const EasyString* str2) {
 }
 int string_equals_c_str(const char* str1, const char* str2) {
     return !strcmp(str1, str2);
+}
+EasyStringArray* string_split(const EasyString* string, const EasyString* substring) {
+    if(string == NULL || substring == NULL) return NULL;
+    return string_split_c_str(string->string, substring->string);
+}
+EasyStringArray* string_split_c_str(const char* string, const char* substring) {
+    if(string == NULL || substring == NULL) return NULL;
+
+    EasyStringArray* stringArray;
+
+    int stringLength = strlen(string);
+    int substringLength = strlen(substring);
+
+    if(stringLength == 0) {
+        stringArray = string_array_init(1);
+        stringArray->stringArray[0] = string_init_with_string("");
+    }
+
+    if(substringLength == 0) {
+        return string_array_char_by_char_c_str(string);
+    }
+
+    if(!string_contains_c_str(string, substring)) {
+        stringArray = string_array_init(1);
+        stringArray->stringArray[0] = string_init_with_string(string);
+        return stringArray;
+    }
+
+    int i = 0;
+    int occ;
+    EasyString* buffer;
+    EasyStringList* stringList = string_list_init();
+
+    while(i<stringLength) {
+        occ = string_first_occurrence_index_from_index_c_str(string, substring, i);
+        if(occ == i) {
+            string_list_add_c_str(stringList, "");
+        }else if(occ == -1) {
+            buffer = string_substring_c_str(string, i, stringLength);
+            string_list_add(stringList, buffer);
+            string_delete(&buffer);
+            stringArray = string_list_to_string_array(stringList);
+            string_list_delete(&stringList);
+            return stringArray;
+        }else {
+            buffer = string_substring_c_str(string, i, occ);
+            string_list_add(stringList, buffer);
+            i += buffer->length;
+            string_delete(&buffer);
+        }
+        i += substringLength;
+    }
+
+    stringArray = string_list_to_string_array(stringList);
+
+    string_list_delete(&stringList);
+
+    return stringArray;
 }
 int string_contains(const EasyString* string, const EasyString* substring) {
     return string_contains_c_str(string->string, substring->string);
@@ -245,10 +326,6 @@ EasyString* string_substring_c_str(const char* string, int start, int end) {
     free(buffer);
     return newString;
 }
-EasyString* string_array_get(EasyStringArray* stringArray, int index) {
-    if(stringArray == NULL || index < 0 || index > stringArray->length) return NULL;
-    return stringArray->stringArray[index];
-}
 int string_length(const EasyString* string) {
     if(string == NULL) return -1;
     return string->length;
@@ -291,99 +368,6 @@ EasyString* string_replace_occurrence_c_str(const char* string, const char* oldS
     string_delete(&sub);
 
     return newString;
-}
-char* _string_strsep_(char **stringPtr, const char *substring) {
-    char *begin, *end;
-    begin = *stringPtr;
-    if (begin == NULL) return NULL;
-    /* Find the end of the token.  */
-    end = begin + strcspn (begin, substring);
-    if (*end) { // Terminate the token and set *STRINGP past NUL character.
-        *end++ = '\0';
-        *stringPtr = end;
-    }
-    else
-    /* No more delimiters; this is the last token.  */
-    *stringPtr = NULL;
-    return begin;
-}
-EasyStringArray* string_split(const EasyString* string, const EasyString* substring) {
-    if(string == NULL || substring == NULL) return NULL;
-    return string_split_c_str(string->string, substring->string);
-}
-EasyStringArray* string_split_c_str(const char* string, const char* substring) {
-    if(string == NULL || substring == NULL || !strlen(string) || !strlen(substring) || (strlen(substring) > strlen(string))) return NULL;
-
-    int arrayLength = 0, i;
-
-    EasyString** arr = (EasyString**) malloc(sizeof(EasyString*)*strlen(string));
-    char *token, *stringPtr;
-
-    stringPtr = strdup(string);
-    while ((token = _string_strsep_(&stringPtr, substring)) != NULL){
-        arr[arrayLength] = string_init_with_string(token);
-        arrayLength++;
-    }
-
-    free(stringPtr);
-
-    EasyStringArray* stringArray = string_array_init(arrayLength);
-
-    for(i=0;i<arrayLength;i++) {
-        stringArray->stringArray[i] = arr[i];
-    }
-
-    free(arr);
-
-    EasyStringArray* finalStringArray = string_array_delete_consecutive_double_occurrences_c_str(stringArray, "");
-
-    string_array_delete(&stringArray);
-    
-    return finalStringArray;
-}
-EasyStringArray* string_array_delete_consecutive_double_occurrences(const EasyStringArray* stringArray, const EasyString* sequence) {
-    if(sequence == NULL) return NULL;
-    return string_array_delete_consecutive_double_occurrences_c_str(stringArray, sequence->string);
-}
-EasyStringArray* string_array_delete_consecutive_double_occurrences_c_str(const EasyStringArray* stringArray, const char* sequence) {
-    if(stringArray == NULL || sequence == NULL) return NULL;
-    
-    int prevIsEmpty, i;
-    int newFinalLength = 0, arrIndex;
-    
-    for(i=0, prevIsEmpty = 0; i<stringArray->length;i++) {
-        if(!strcmp(stringArray->stringArray[i]->string, sequence)) {
-            if(prevIsEmpty) {
-                prevIsEmpty = 0;
-                newFinalLength++;
-            }else {
-                prevIsEmpty = 1;
-            }
-        } else {
-            prevIsEmpty = 0;
-            newFinalLength++;
-        }
-    }
-
-    EasyStringArray* newStringArray = string_array_init(newFinalLength);
-
-    for(i=0, arrIndex=0, prevIsEmpty = 0; i<stringArray->length;i++) {
-        if(!strcmp(stringArray->stringArray[i]->string, sequence)) {
-            if(prevIsEmpty) {
-                prevIsEmpty = 0;
-                newStringArray->stringArray[arrIndex] = string_init_with_string(stringArray->stringArray[i]->string);
-                arrIndex++;
-            }else {
-                prevIsEmpty = 1;
-            }
-        } else {
-            prevIsEmpty = 0;
-            newStringArray->stringArray[arrIndex] = string_init_with_string(stringArray->stringArray[i]->string);
-            arrIndex++;
-        }
-    }
-
-    return newStringArray;
 }
 EasyString* string_replace_first(const EasyString* string, const EasyString* oldSequence, const EasyString* newSequence) {
     if(string == NULL || oldSequence == NULL || newSequence == NULL) return NULL;
@@ -468,6 +452,121 @@ void string_delete(EasyString** string) {
     free(*string);
     *string = NULL;
 }
+
+//Functions Declaration: EasyStringArray
+EasyStringArray* string_array_init(int arrayLength) {
+    if(arrayLength<=0) return NULL;
+    EasyStringArray* stringArray = (EasyStringArray*) malloc(sizeof(EasyStringArray));
+    stringArray->length = arrayLength;
+    stringArray->stringArray = (EasyString**) malloc(sizeof(EasyString*)*arrayLength);
+    int i;
+    for(i=0;i<arrayLength;i++) {
+        (stringArray->stringArray)[i] = NULL;
+    }
+    return stringArray;
+}
+int string_array_realloc(EasyStringArray* oldArray, int newSize) {
+    if(oldArray == NULL || oldArray->length <= 0 || oldArray->stringArray == NULL || oldArray->length >= newSize) return 0;
+
+    EasyStringArray* newArray = string_array_init(newSize);
+
+    int i;
+    for(i=0;i<oldArray->length;i++) {
+        newArray->stringArray[i] = oldArray->stringArray[i];
+    }
+    for(;i<newArray->length;i++) {
+        newArray->stringArray[i] = NULL;
+    }
+
+    free(oldArray->stringArray);
+
+    oldArray->stringArray = newArray->stringArray;
+    oldArray->length = newArray->length;
+    free(newArray);
+
+    return 1;
+}
+int string_array_length(const EasyStringArray* stringArray) {
+    if(stringArray == NULL) return -1;
+    return stringArray->length;
+}
+EasyString* string_array_get(const EasyStringArray* stringArray, int index) {
+    return stringArray->stringArray[index];
+}
+EasyStringArray* string_array_char_by_char(const EasyString* string) {
+    if(string == NULL) return NULL;
+    return string_array_char_by_char_c_str(string->string);
+}
+EasyStringArray* string_array_char_by_char_c_str(const char* string) {
+    if(string == NULL) return NULL;
+    int arrayLength = strlen(string);
+
+    EasyStringArray* strArray = string_array_init(arrayLength);
+    int i;
+    EasyString* buffer;
+    for(i=0;i<arrayLength;i++) {
+        buffer = string_substring_c_str(string, i, i+1);
+        strArray->stringArray[i] = string_init_with_string(buffer->string);
+        string_delete(&buffer);
+    }
+
+    return strArray;
+}
+EasyStringArray* string_array_delete_consecutive_double_occurrences(const EasyStringArray* stringArray, const EasyString* sequence) {
+    if(sequence == NULL) return NULL;
+    return string_array_delete_consecutive_double_occurrences_c_str(stringArray, sequence->string);
+}
+EasyStringArray* string_array_delete_consecutive_double_occurrences_c_str(const EasyStringArray* stringArray, const char* sequence) {
+    if(stringArray == NULL || sequence == NULL) return NULL;
+    
+    int prevIsEmpty, i;
+    int newFinalLength = 0, arrIndex;
+    
+    for(i=0, prevIsEmpty = 0; i<stringArray->length;i++) {
+        if(!strcmp(stringArray->stringArray[i]->string, sequence)) {
+            if(prevIsEmpty) {
+                prevIsEmpty = 0;
+                newFinalLength++;
+            }else {
+                prevIsEmpty = 1;
+            }
+        } else {
+            prevIsEmpty = 0;
+            newFinalLength++;
+        }
+    }
+
+    EasyStringArray* newStringArray = string_array_init(newFinalLength);
+
+    for(i=0, arrIndex=0, prevIsEmpty = 0; i<stringArray->length;i++) {
+        if(!strcmp(stringArray->stringArray[i]->string, sequence)) {
+            if(prevIsEmpty) {
+                prevIsEmpty = 0;
+                newStringArray->stringArray[arrIndex] = string_init_with_string(stringArray->stringArray[i]->string);
+                arrIndex++;
+            }else {
+                prevIsEmpty = 1;
+            }
+        } else {
+            prevIsEmpty = 0;
+            newStringArray->stringArray[arrIndex] = string_init_with_string(stringArray->stringArray[i]->string);
+            arrIndex++;
+        }
+    }
+
+    return newStringArray;
+}
+EasyStringList* string_array_to_string_list(const EasyStringArray* stringArray) {
+    if(stringArray == NULL) return NULL;
+    EasyStringList* stringList = string_list_init_with_size(stringArray->length*2);
+
+    int i;
+    for(i=0;i<stringArray->length;i++) {
+        string_list_add(stringList, stringArray->stringArray[i]);
+    }
+
+    return stringList;
+}
 void string_array_delete(EasyStringArray** stringArr) {
     if(stringArr == NULL) return;
     if(*stringArr == NULL) return;
@@ -477,6 +576,150 @@ void string_array_delete(EasyStringArray** stringArr) {
     }
     free(*stringArr);
     *stringArr = NULL;
+}
+
+//Functions Declaration: EasyStringList
+EasyStringList* string_list_init() {
+    return string_list_init_with_size(DEFAUT_STRING_LIST_SIZE);
+}
+EasyStringList* string_list_init_with_size(int listStartingSize) {
+    if(listStartingSize <= 0) return NULL;
+    EasyStringList* stringList = (EasyStringList*) malloc(sizeof(EasyStringList));
+    stringList->size = 0;
+    stringList->_impl_size = listStartingSize;
+    stringList->strings = string_array_init(listStartingSize);
+    return stringList;
+}
+int string_list_defrag(EasyStringList* stringList) {
+    if(stringList == NULL) return 0;
+    return string_list_defrag_index(stringList, 0);
+}
+int string_list_defrag_index(EasyStringList* stringList, int index) {
+    if(stringList == NULL) return 0;
+    if(index < 0) return 0;
+    if(stringList->size == 0) return 1;
+    if(stringList->size-1 == index && stringList->strings->stringArray[index] == NULL) {
+        stringList->size--;
+        return 1;
+    }
+    if(stringList->size == index) return 1;
+    if(stringList->strings->stringArray[index] != NULL) return string_list_defrag_index(stringList, index+1);
+
+    int i;
+    for(i=index+1;i<stringList->size;i++) {
+        stringList->strings->stringArray[i-1] = stringList->strings->stringArray[i];
+    }
+
+    stringList->strings->stringArray[stringList->size-1] = NULL;
+    stringList->size--;
+
+    return string_list_defrag_index(stringList, index+1);
+}
+EasyString* string_list_get(const EasyStringList* stringList, int index) {
+    if(stringList == NULL || index < 0) return NULL;
+    if(stringList->strings == NULL) return NULL;
+    if(stringList->strings->stringArray == NULL) return NULL;
+    if(stringList->strings->stringArray[index] == NULL) return NULL;
+    return stringList->strings->stringArray[index];
+}
+int string_list_add(EasyStringList* stringList, const EasyString* string) {
+    if(stringList == NULL || string == NULL) return 0;
+    return string_list_add_c_str(stringList, string->string);
+}
+int string_list_add_c_str(EasyStringList* stringList, const char* string) {
+    if((stringList->size+1) >= stringList->_impl_size) {
+        stringList->_impl_size*=2;
+        string_array_realloc(stringList->strings, stringList->_impl_size);
+    }
+    stringList->strings->stringArray[stringList->size] = string_init_with_string(string);
+    stringList->size++;
+    return 1;
+}
+int string_list_add_string_array(EasyStringList* stringList, const EasyStringArray* stringArray) {
+    int i;
+    int result = 1;
+    for(i=0;i<stringArray->length;i++) {
+        result = result && string_list_add_c_str(stringList, stringArray->stringArray[i]->string);
+    }
+    return result;
+}
+EasyStringArray* string_list_to_string_array(const EasyStringList* stringList) {
+    if(stringList == NULL) return NULL;
+
+    EasyStringArray* stringArray = string_array_init(stringList->size);
+    int i;
+    for(i=0;i<stringList->size;i++) {
+        stringArray->stringArray[i] = string_init_with_string(stringList->strings->stringArray[i]->string);
+    }
+
+    return stringArray;
+}
+int string_list_get_occ(const EasyStringList* stringList, const EasyString* string){
+    if(stringList == NULL || string == NULL) return -1;
+    return string_list_get_occ_c_str(stringList, string->string);
+}
+int string_list_get_occ_c_str(const EasyStringList* stringList, const char* string) {
+    if(stringList == NULL || string == NULL) return -1;
+    int i;
+    int numOcc = 0;
+    for(i = 0; i<stringList->size; i++) {
+        if(string_equals_c_str(stringList->strings->stringArray[i]->string, string)) numOcc++;
+    }
+    return numOcc;
+}
+int string_list_find(const EasyStringList* stringList, const EasyString* string) {
+    if(stringList == NULL || string == NULL) return -1;
+    return string_list_find_c_str(stringList, string->string);
+}
+int string_list_find_c_str(const EasyStringList* stringList, const char* string) {
+    if(stringList == NULL || string == NULL) return -1;
+    int i;
+    for(i=0;i<stringList->size;i++) {
+        if(string_equals_c_str(stringList->strings->stringArray[i]->string, string)) return i;
+    }
+    return -1;
+}
+int string_list_remove(EasyStringList* stringList, const EasyString* string) {
+    if(stringList == NULL || string == NULL) return 0;
+    return string_list_remove_c_str(stringList, string->string);
+}
+int string_list_remove_c_str(EasyStringList* stringList, const char* string) {
+    if(stringList == NULL || string == NULL) return 0;
+    int index = string_list_find_c_str(stringList, string);
+    if(index == -1) return 0;
+    string_delete(&(stringList->strings->stringArray[index]));
+    string_list_defrag(stringList);
+    return 1;
+}
+int string_list_remove_by_index(EasyStringList* stringList, int index) {
+    if(stringList == NULL || index < 0) return 0;
+    if(stringList->strings->stringArray[index] == NULL) return 1;
+    string_delete(&(stringList->strings->stringArray[index]));
+    string_list_defrag(stringList);
+    return 1;
+}
+int string_list_remove_all(EasyStringList* stringList, const EasyString* string) {
+    if(stringList == NULL || string == NULL) return 0;
+    return string_list_remove_all_c_str(stringList, string->string);
+}
+int string_list_remove_all_c_str(EasyStringList* stringList, const char* string) {
+    if(stringList == NULL || string == NULL) return 0;
+    int numOcc = string_list_get_occ_c_str(stringList, string);
+    if(numOcc == -1) return 0;
+    int i;
+    for(i=0;i<numOcc;i++) {
+        string_list_remove_c_str(stringList, string);
+    }
+    return 1;
+}
+void string_list_delete(EasyStringList** stringList) {
+    if(stringList == NULL) return;
+    if(*stringList == NULL) return;
+    string_array_delete(&((*stringList)->strings));
+    (*stringList)->_impl_size = 0;
+    (*stringList)->size = 0;
+    free(*stringList);
+    *stringList = NULL;
 }
 
 #endif
