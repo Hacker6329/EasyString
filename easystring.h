@@ -1,41 +1,47 @@
 #ifndef EASY_STRING_H
 #define EASY_STRING_H
 
-//Including Libraries
+// Including Libraries
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-//Defs
-#define DEFAULT_STRING_SIZE 100
-#define DEFAUT_STRING_LIST_SIZE 10
+// Defs
+#define EASY_STRING_DEFAULT_STRING_SIZE 100
+#define EASY_STRING_DEFAUT_STRING_LIST_SIZE 10
 
-//EasyString Structure
+// EasyString Structure
 typedef struct {
     char* string;
     int size;
     int length;
 }EasyString;
 
-//StringArray Structure
+// StringArray Structure
 typedef struct {
     EasyString** stringArray;
     int length;
 }EasyStringArray;
 
-//StringList Structure
+// StringList Structure
 typedef struct {
     EasyStringArray* strings;
     int size;
     int _impl_size;
 }EasyStringList;
 
-//StringSet Structure
+// StringSet Structure
 typedef struct {
     EasyStringList* stringList;
 }EasyStringSet;
 
-//Functions Pre-Declaration: EasyString
+// StringMap Structure
+typedef struct {
+    EasyStringSet* keys;
+    EasyStringList* values;
+}EasyStringMap;
+
+// Functions Pre-Declaration: EasyString
 int string_check_integrity(const EasyString* string);
 EasyString* string_init_with_size(int size);
 EasyString* string_init();
@@ -48,6 +54,10 @@ int string_append_at_begin(EasyString* dest, const EasyString* src);
 int string_append_at_begin_c_str(EasyString* dest, const char* src);
 int string_append_at_index(EasyString* dest, const EasyString* src, int index);
 int string_append_at_index_c_str(EasyString* dest, const char* src, int index);
+int string_to_upper(EasyString* str);
+int string_to_upper_c_str(char* str);
+int string_to_lower(EasyString* str);
+int string_to_lower_c_str(char* str);
 const char* string_c_str(const EasyString* string);
 int string_equals(const EasyString* str1, const EasyString* str2);
 int string_equals_c_str(const char* str1, const char* str2);
@@ -75,7 +85,7 @@ EasyString* string_replace_occurrence(const EasyString* string, const EasyString
 EasyString* string_replace_occurrence_c_str(const char* string, const char* oldSequence, const char* newSequence, int occurrenceNumber);
 void string_delete(EasyString** string);
 
-//Functions Pre-Declaration: EasyStringArray
+// Functions Pre-Declaration: EasyStringArray
 int string_array_check_integrity(const EasyStringArray* stringArray);
 int string_array_check_full_integrity(const EasyStringArray* stringArray);
 EasyStringArray* string_array_init(int arrayLength);
@@ -91,7 +101,7 @@ EasyStringList* string_array_to_string_list(const EasyStringArray* stringArray);
 EasyStringSet* string_array_to_string_set(const EasyStringArray* stringArray);
 void string_array_delete(EasyStringArray** stringArr);
 
-//Functions Pre-Declaration: EasyStringList
+// Functions Pre-Declaration: EasyStringList
 int string_list_check_integrity(const EasyStringList* stringList);
 int string_list_check_full_integrity(const EasyStringList* stringList);
 EasyStringList* string_list_init();
@@ -118,7 +128,7 @@ EasyStringList* string_list_clone(const EasyStringList* stringList);
 EasyStringSet* string_list_to_string_set(const EasyStringList* stringList);
 void string_list_delete(EasyStringList** stringList);
 
-//Function Pre-Declaration: EasyStringSet
+// Function Pre-Declaration: EasyStringSet
 int string_set_check_integrity(const EasyStringSet* stringSet);
 int string_set_check_full_integrity(const EasyStringSet* stringSet);
 EasyStringSet* string_set_init();
@@ -134,16 +144,17 @@ int string_set_contains(const EasyStringSet* stringSet, const EasyString* string
 int string_set_contains_c_str(const EasyStringSet* stringSet, const char* string);
 EasyStringArray* string_set_to_string_array(const EasyStringSet* stringSet);
 EasyStringList* string_set_to_string_list(const EasyStringSet* stringSet);
+EasyStringSet* string_set_clone(const EasyStringSet* stringSet);
 void string_set_delete(EasyStringSet** stringSet);
 
-//Functions Declaration: EasyString
+// Functions Declaration: EasyString
 int string_check_integrity(const EasyString* string) {
     return (string == NULL || string->string == NULL || string->length<0 || string->size<=0 || string->length >= string->size)==0;
 }
 EasyString* string_init_with_size(int size) {
     if(size<0) return NULL;
     if(size == 0) {
-        size = DEFAULT_STRING_SIZE;
+        size = EASY_STRING_DEFAULT_STRING_SIZE;
     }
     EasyString* string = (EasyString*) malloc(sizeof(EasyString));
     if(string == NULL) return NULL;
@@ -158,7 +169,7 @@ EasyString* string_init_with_size(int size) {
     return string;
 }
 EasyString* string_init() {
-    return string_init_with_size(DEFAULT_STRING_SIZE);
+    return string_init_with_size(EASY_STRING_DEFAULT_STRING_SIZE);
 }
 EasyString* string_init_with_string(const char* startStr) {
     if(startStr == NULL) return NULL;
@@ -258,6 +269,38 @@ int string_append_at_index_c_str(EasyString* dest, const char* src, int index) {
 
     return 1;
 }
+int string_to_upper(EasyString* str) {
+    if(!string_check_integrity(str)) return -1;
+    return string_to_upper_c_str(str->string);
+}
+int string_to_upper_c_str(char* str) {
+    if(str == NULL) return -1;
+    int i, count = 0, length = strlen(str);
+    if(length == 0) return 0;
+    for(i = 0; i < length; i++) {
+        if(str[i] >='a' && str[i]<='z') {
+            str[i] -= 32;
+            count++;
+        }
+    }
+    return count;
+}
+int string_to_lower(EasyString* str) {
+    if(!string_check_integrity(str)) return -1;
+    return string_to_lower_c_str(str->string);
+}
+int string_to_lower_c_str(char* str) {
+    if(str == NULL) return -1;
+    int i, count = 0, length = strlen(str);
+    if(length == 0) return 0;
+    for(i = 0; i < length; i++) {
+        if(str[i] >='A' && str[i]<='Z') {
+            str[i] += 32;
+            count++;
+        }
+    }
+    return count;
+}
 const char* string_c_str(const EasyString* string) {
     if(!string_check_integrity(string)) return NULL;
     return string->string;
@@ -292,7 +335,6 @@ EasyStringArray* string_split_c_str(const char* string, const char* substring) {
         }
         return stringArray;
     }
-
     if(substringLength == 0) {
         return string_array_char_by_char_c_str(string);
     }
@@ -424,17 +466,21 @@ EasyString* string_substring_c_str(const char* string, int start, int end) {
     if(string == NULL) return NULL;
 
     int length = strlen(string);
+    if(start<0 || end>length) return NULL;
+
     if(start == end) {
         char temp[3];
         temp[0] = string[start];
         temp[1] = 0;
         return string_init_with_string(temp);
     }
-    if(start<0 || end>length) return NULL;
 
     char* buffer = (char*) malloc(sizeof(char)*length);
     if(buffer == NULL) return NULL;
-    strcpy(buffer, &(string[start]));
+    int i, bufI;
+    for(i=start, bufI=0;i<length;i++, bufI++) {
+        buffer[bufI] = string[i];
+    }
     buffer[end-start] = 0;
     EasyString* newString = string_init_with_string(buffer);
     if(newString == NULL) {
@@ -632,7 +678,7 @@ void string_delete(EasyString** string) {
     *string = NULL;
 }
 
-//Functions Declaration: EasyStringArray
+// Functions Declaration: EasyStringArray
 int string_array_check_integrity(const EasyStringArray* stringArray) {
     return (stringArray == NULL || stringArray->length <= 0 || stringArray->stringArray == NULL) == 0;
 }
@@ -691,7 +737,7 @@ int string_array_length(const EasyStringArray* stringArray) {
 }
 EasyString* string_array_get(const EasyStringArray* stringArray, int index) {
     if(!string_array_check_integrity(stringArray) || index >= stringArray->length) return NULL;
-    return stringArray->stringArray[index];
+    return string_clone(stringArray->stringArray[index]);
 }
 EasyStringArray* string_array_char_by_char(const EasyString* string) {
     if(!string_check_integrity(string)) return NULL;
@@ -841,7 +887,7 @@ void string_array_delete(EasyStringArray** stringArr) {
     *stringArr = NULL;
 }
 
-//Functions Declaration: EasyStringList
+// Functions Declaration: EasyStringList
 int string_list_check_integrity(const EasyStringList* stringList) {
     return (stringList == NULL || stringList->size<0 || stringList->_impl_size<=0 || stringList->size >= stringList->_impl_size || stringList->strings == NULL || !string_array_check_integrity(stringList->strings)) == 0;
 }
@@ -850,7 +896,7 @@ int string_list_check_full_integrity(const EasyStringList* stringList) {
     return string_array_check_full_integrity(stringList->strings);
 }
 EasyStringList* string_list_init() {
-    return string_list_init_with_size(DEFAUT_STRING_LIST_SIZE);
+    return string_list_init_with_size(EASY_STRING_DEFAUT_STRING_LIST_SIZE);
 }
 EasyStringList* string_list_init_with_size(int listStartingSize) {
     if(listStartingSize <= 0) return NULL;
@@ -1054,7 +1100,7 @@ void string_list_delete(EasyStringList** stringList) {
     *stringList = NULL;
 }
 
-//Function Declaration: EasyStringSet
+// Function Declaration: EasyStringSet
 int string_set_check_integrity(const EasyStringSet* stringSet) {
     return (stringSet == NULL || !string_list_check_integrity(stringSet->stringList)) == 0;
 }
@@ -1063,7 +1109,7 @@ int string_set_check_full_integrity(const EasyStringSet* stringSet) {
     return string_array_check_full_integrity(stringSet->stringList->strings);
 }
 EasyStringSet* string_set_init() {
-    return string_set_init_with_size(DEFAUT_STRING_LIST_SIZE);
+    return string_set_init_with_size(EASY_STRING_DEFAUT_STRING_LIST_SIZE);
 }
 EasyStringSet* string_set_init_with_size(int setStartingSize) {
 
@@ -1126,6 +1172,14 @@ EasyStringArray* string_set_to_string_array(const EasyStringSet* stringSet) {
 EasyStringList* string_set_to_string_list(const EasyStringSet* stringSet) {
     if(stringSet == NULL) return NULL;
     return string_list_clone(stringSet->stringList);
+}
+EasyStringSet* string_set_clone(const EasyStringSet* stringSet) {
+    if(!string_set_check_integrity(stringSet)) return NULL;
+
+    EasyStringSet* newStringSet = string_set_init();
+    string_list_delete(&(newStringSet->stringList));
+    newStringSet->stringList = string_list_clone(stringSet->stringList);
+    return newStringSet;
 }
 void string_set_delete(EasyStringSet** stringSet) {
     string_list_delete(&((*stringSet)->stringList));
