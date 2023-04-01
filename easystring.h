@@ -83,6 +83,9 @@ EasyString* string_clone(const EasyString* string);
 EasyString* string_clone_c_str(const char* string);
 EasyString* string_replace_occurrence(const EasyString* string, const EasyString* oldSequence, const EasyString* newSequence, int occurrenceNumber);
 EasyString* string_replace_occurrence_c_str(const char* string, const char* oldSequence, const char* newSequence, int occurrenceNumber);
+int string_to_int(const EasyString* string);
+int string_to_int_c_str(const char* string);
+EasyString* string_from_int(int number);
 void string_delete(EasyString** string);
 
 // Functions Pre-Declaration: EasyStringArray
@@ -559,7 +562,7 @@ EasyString* string_replace_first(const EasyString* string, const EasyString* old
     return string_replace_first_c_str(string->string, oldSequence->string, newSequence->string);
 }
 EasyString* string_replace_first_c_str(const char* string, const char* oldSequence, const char* newSequence) {
-    if(string == NULL || oldSequence == NULL || newSequence == NULL || !strlen(string) || !strlen(oldSequence) || !strlen(newSequence)) return NULL;
+    if(string == NULL || oldSequence == NULL || newSequence == NULL || !strlen(string) || !strlen(oldSequence)) return NULL;
 
     EasyString* newString = string_init();
     if(newString == NULL) return NULL;
@@ -667,6 +670,17 @@ EasyString* string_clone(const EasyString* string) {
 EasyString* string_clone_c_str(const char* string) {
     if(string == NULL) return NULL;
     return string_init_with_string(string);
+}
+int string_to_int(const EasyString* string) {
+    return string_to_int_c_str(string->string);
+}
+int string_to_int_c_str(const char* string) {
+    return atoi(string);
+}
+EasyString* string_from_int(int number) {
+    char buffer[EASY_STRING_DEFAULT_STRING_SIZE];
+    sprintf(buffer, "%d", number);
+    return string_init_with_string(buffer);
 }
 void string_delete(EasyString** string) {
     if(string == NULL) return;
@@ -940,7 +954,7 @@ int string_list_defrag_index(EasyStringList* stringList, int index, int skipInte
 }
 EasyString* string_list_get(const EasyStringList* stringList, int index) {
     if(!string_list_check_integrity(stringList) || index < 0) return NULL;
-    return stringList->strings->stringArray[index];
+    return string_clone(stringList->strings->stringArray[index]);
 }
 int string_list_add(EasyStringList* stringList, const EasyString* string) {
     if(!string_check_integrity(string)) return 0;
