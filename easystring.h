@@ -35,12 +35,6 @@ typedef struct {
     EasyStringList* stringList;
 }EasyStringSet;
 
-// StringMap Structure
-typedef struct {
-    EasyStringSet* keys;
-    EasyStringList* values;
-}EasyStringMap;
-
 // Functions Pre-Declaration: EasyString
 int string_check_integrity(const EasyString* string);
 EasyString* string_init_with_size(int size);
